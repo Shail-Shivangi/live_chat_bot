@@ -10,7 +10,11 @@ export default function ChatWindow({ conversationId }: any) {
   const users = useQuery(api.users.getUsers);
   const sendMessage = useMutation(api.messages.sendMessage);
   const [message, setMessage] = useState("");
-
+  const setTyping = useMutation(api.typing.setTyping);
+const typingUsers = useQuery(
+  api.typing.getTypingUsers,
+  conversationId ? { conversationId } : "skip"
+);
   const messages = useQuery(
     api.messages.getMessages,
     conversationId ? { conversationId } : "skip"
@@ -40,8 +44,10 @@ export default function ChatWindow({ conversationId }: any) {
         : "text-left"
     }`}
   >
+    
     <div className="inline-block bg-blue-500 text-white px-3 py-2 rounded-lg">
       <div>{msg.body}</div>
+      
 
       <div className="text-xs text-gray-200 mt-1 text-right">
         {formatMessageTime(msg.createdAt)}
@@ -55,8 +61,26 @@ export default function ChatWindow({ conversationId }: any) {
         <input
           className="flex-1 bg-gray-100 p-2 rounded"
           value={message}
-          onChange={(e) => setMessage(e.target.value)}
+         onChange={(e) => {
+  setMessage(e.target.value);
+
+  setTyping({
+    conversationId,
+    userId: currentUser!._id,
+  });
+}}
         />
+        {typingUsers?.some(
+  (t) => t.userId !== currentUser?._id
+) && (
+  <div className="flex items-center gap-2 px-4 pb-2 text-gray-500">
+    <span>Typing</span>
+    <span className="animate-bounce">.</span>
+    <span className="animate-bounce delay-100">.</span>
+    <span className="animate-bounce delay-200">.</span>
+  </div>
+)}
+
         <button
           className="bg-blue-500 text-white px-4 rounded"
           onClick={() => {

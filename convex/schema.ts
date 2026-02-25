@@ -11,24 +11,29 @@ export default defineSchema({
 }).index("by_clerkId", ["clerkId"]),
 
   conversations: defineTable({
-    members: v.array(v.id("users")),
-    isGroup: v.boolean(),
-    name: v.optional(v.string()),
-  }),
+  members: v.array(v.id("users")),
+  isGroup: v.boolean(),
+  name: v.optional(v.string()),
+}),
 
-  messages: defineTable({
+ messages: defineTable({
   conversationId: v.id("conversations"),
   senderId: v.id("users"),
   body: v.string(),
-  deleted: v.boolean(),
   createdAt: v.number(),
-}).index("by_conversation", ["conversationId"]),
-
- typing: defineTable({
-  conversationId: v.id("conversations"),
-  userId: v.id("users"),
-  updatedAt: v.number(),
+  deleted: v.boolean(),
+  readBy: v.array(v.id("users")),
 })
-  .index("by_conversation", ["conversationId"])
-  .index("by_user", ["userId"]),
+.index("by_conversation", ["conversationId"]),
+
+typing: defineTable({
+  userId: v.id("users"),
+  conversationId: v.id("conversations"),
+  
+})
+.index("by_user_conversation", ["userId", "conversationId"])
+.index("by_conversation", ["conversationId"]),
 });
+
+
+// npx convex dev --configure=new --once

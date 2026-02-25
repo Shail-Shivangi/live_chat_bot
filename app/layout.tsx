@@ -25,7 +25,12 @@
 // }
 
 import "./globals.css";
-import Providers from "../components/Providers";
+import { Providers } from "../components/Providers";
+
+export const metadata = {
+  title: "Live Chat App",
+  description: "Realtime chat with Next + Convex + Clerk",
+};
 
 export default function RootLayout({
   children,

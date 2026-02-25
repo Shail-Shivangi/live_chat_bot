@@ -1,19 +1,20 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
+
+
 export const createOrGetConversation = mutation({
   args: {
     user1: v.id("users"),
     user2: v.id("users"),
   },
   handler: async (ctx, args) => {
-    const conversations = await ctx.db
-      .query("conversations")
-      .collect();
+    const conversations = await ctx.db.query("conversations").collect();
 
     const existing = conversations.find(
       (c) =>
         !c.isGroup &&
+        c.members.length === 2 &&
         c.members.includes(args.user1) &&
         c.members.includes(args.user2)
     );
@@ -24,5 +25,50 @@ export const createOrGetConversation = mutation({
       members: [args.user1, args.user2],
       isGroup: false,
     });
+  },
+});
+export const getConversations = query({
+  handler: async (ctx) => {
+    return await ctx.db.query("conversations").collect();
+  },
+});
+
+
+export const getUserConversations = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const conversations = await ctx.db
+      .query("conversations")
+      .collect();
+
+    const userConversations = conversations.filter((c) =>
+      c.members.includes(args.userId)
+    );
+
+    const results = [];
+
+    for (const convo of userConversations) {
+      const messages = await ctx.db
+        .query("messages")
+        .withIndex("by_conversation", (q) =>
+          q.eq("conversationId", convo._id)
+        )
+        .collect();
+
+      const unreadCount = messages.filter((m) => {
+  const readBy = m.readBy ?? []; // ✅ Fix here
+
+  return (
+    !readBy.includes(args.userId) &&
+    m.senderId !== args.userId
+  );
+}).length;
+      results.push({
+        ...convo,
+        unreadCount,
+      });
+    }
+
+    return results;
   },
 });

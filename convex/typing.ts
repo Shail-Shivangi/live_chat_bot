@@ -1,7 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
-/* START TYPING */
+/* START OR UPDATE TYPING */
 export const startTyping = mutation({
   args: {
     conversationId: v.id("conversations"),
@@ -11,20 +11,24 @@ export const startTyping = mutation({
     const existing = await ctx.db
       .query("typing")
       .withIndex("by_user_conversation", (q) =>
-        q.eq("userId", args.userId).eq("conversationId", args.conversationId)
+        q.eq("userId", args.userId)
+         .eq("conversationId", args.conversationId)
       )
       .first();
 
-    if (!existing) {
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        updatedAt: Date.now(),
+      });
+    } else {
       await ctx.db.insert("typing", {
         conversationId: args.conversationId,
         userId: args.userId,
+        updatedAt: Date.now(),
       });
     }
   },
 });
-
-/* STOP TYPING */
 export const stopTyping = mutation({
   args: {
     conversationId: v.id("conversations"),
@@ -34,7 +38,9 @@ export const stopTyping = mutation({
     const existing = await ctx.db
       .query("typing")
       .withIndex("by_user_conversation", (q) =>
-        q.eq("userId", args.userId).eq("conversationId", args.conversationId)
+        q
+          .eq("userId", args.userId)
+          .eq("conversationId", args.conversationId)
       )
       .first();
 
@@ -44,17 +50,23 @@ export const stopTyping = mutation({
   },
 });
 
-/* GET TYPING USERS */
+
+/* GET ACTIVE TYPING USERS */
 export const getTypingUsers = query({
   args: {
     conversationId: v.id("conversations"),
   },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const now = Date.now();
+
+    const records = await ctx.db
       .query("typing")
       .withIndex("by_conversation", (q) =>
         q.eq("conversationId", args.conversationId)
       )
       .collect();
+
+    // Only show users typing in the last 5 seconds
+    return records.filter((r) => now - r.updatedAt < 5000);
   },
 });

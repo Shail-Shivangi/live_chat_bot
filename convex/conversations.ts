@@ -24,6 +24,7 @@ export const createOrGetConversation = mutation({
     return await ctx.db.insert("conversations", {
       members: [args.user1, args.user2],
       isGroup: false,
+      updatedAt: Date.now(),
     });
   },
 });
@@ -45,29 +46,26 @@ export const getUserConversations = query({
       c.members.includes(args.userId)
     );
 
-    const results = [];
+    const results = await Promise.all(
+      userConversations.map(async (convo) => {
+        const messages = await ctx.db
+          .query("messages")
+          .withIndex("by_conversation", (q) =>
+            q.eq("conversationId", convo._id)
+          )
+          .collect();
 
-    for (const convo of userConversations) {
-      const messages = await ctx.db
-        .query("messages")
-        .withIndex("by_conversation", (q) =>
-          q.eq("conversationId", convo._id)
-        )
-        .collect();
+        const unreadCount = messages.filter((m) => {
+          const readBy = m.readBy ?? [];
+          return m.senderId !== args.userId && !readBy.includes(args.userId);
+        }).length;
 
-      const unreadCount = messages.filter((m) => {
-  const readBy = m.readBy ?? []; // ✅ Fix here
-
-  return (
-    !readBy.includes(args.userId) &&
-    m.senderId !== args.userId
-  );
-}).length;
-      results.push({
-        ...convo,
-        unreadCount,
-      });
-    }
+        return {
+          ...convo,
+          unreadCount,
+        };
+      })
+    );
 
     return results;
   },

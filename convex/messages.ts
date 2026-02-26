@@ -13,8 +13,9 @@ export const sendMessage = mutation({
       senderId: args.senderId,
       body: args.body,
       createdAt: Date.now(),
-      readBy: [args.senderId],
       deleted: false,
+      // 🔥 IMPORTANT
+      readBy: [args.senderId],
     });
   },
 });
@@ -46,12 +47,9 @@ export const markAsRead = mutation({
       .collect();
 
     for (const msg of messages) {
-      if (
-        !msg.readBy.includes(args.userId) &&
-        msg.senderId !== args.userId
-      ) {
+      if (!msg.readBy?.includes(args.userId)) {
         await ctx.db.patch(msg._id, {
-          readBy: [...msg.readBy, args.userId],
+          readBy: [...(msg.readBy || []), args.userId],
         });
       }
     }

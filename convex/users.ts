@@ -8,6 +8,7 @@ export const createUser = mutation({
     image: v.string(),
     online: v.boolean(),
     lastSeen: v.number(),
+    updatedAt: v.number(),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -27,7 +28,6 @@ export const getUsers = query({
     return await ctx.db.query("users").collect();
   },
 });
-
 
 export const setOnline = mutation({
   args: {

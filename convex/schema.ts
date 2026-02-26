@@ -8,12 +8,14 @@ export default defineSchema({
   image: v.string(),
   online: v.boolean(),
   lastSeen: v.optional(v.number()),
+  updatedAt: v.number(),
 }).index("by_clerkId", ["clerkId"]),
 
   conversations: defineTable({
   members: v.array(v.id("users")),
   isGroup: v.boolean(),
   name: v.optional(v.string()),
+  updatedAt: v.number(),
 }),
 
  messages: defineTable({
@@ -29,10 +31,10 @@ export default defineSchema({
 typing: defineTable({
   userId: v.id("users"),
   conversationId: v.id("conversations"),
-  
+  updatedAt: v.number(),
 })
 .index("by_user_conversation", ["userId", "conversationId"])
-.index("by_conversation", ["conversationId"]),
+.index("by_conversation", ["conversationId","userId"]),
 });
 
 

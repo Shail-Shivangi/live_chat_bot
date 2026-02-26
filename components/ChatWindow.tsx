@@ -30,6 +30,8 @@ export default function ChatWindow({ conversationId }: any) {
 
   const [message, setMessage] = useState("");
   const [showNewMessageButton, setShowNewMessageButton] = useState(false);
+  const typingTimeout = useRef<NodeJS.Timeout | null>(null);
+
 
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -149,6 +151,44 @@ export default function ChatWindow({ conversationId }: any) {
 
   /* ================= UI ================= */
 
+  useEffect(() => {
+    if (!conversationId || !currentUser) return;
+
+    const handleStopTyping = () => {
+      stopTyping({
+        conversationId,
+        userId: currentUser._id,
+      });
+      typingTimeout.current = null;
+    };
+
+    if (typingTimeout.current) {
+      clearTimeout(typingTimeout.current);
+    }
+
+    typingTimeout.current = setTimeout(handleStopTyping, 5000);
+
+    return () => {
+      if (typingTimeout.current) {
+        clearTimeout(typingTimeout.current);
+      }
+    };
+  }, [message, conversationId, currentUser, stopTyping]);
+
+  const handleScrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: "smooth",
+    });
+    setShowNewMessageButton(false);
+
+    if (conversationId && currentUser) {
+      markAsRead({
+        conversationId,
+        userId: currentUser._id,
+      });
+    }
+  };
+
   return (
     <div className="relative flex-1 flex flex-col">
 
@@ -206,20 +246,7 @@ export default function ChatWindow({ conversationId }: any) {
       {showNewMessageButton && (
         <div className="absolute bottom-24 right-6">
           <button
-           onClick={() => {
-  messagesEndRef.current?.scrollIntoView({
-    behavior: "smooth",
-  });
-
-  setShowNewMessageButton(false);
-
-  if (conversationId && currentUser) {
-    markAsRead({
-      conversationId,
-      userId: currentUser._id,
-    });
-  }
-}}
+            onClick={handleScrollToBottom}
             className="bg-blue-500 text-white px-4 py-2 rounded-full shadow-md hover:bg-blue-600 transition"
           >
             ↓ New Messages
@@ -235,29 +262,23 @@ export default function ChatWindow({ conversationId }: any) {
           onChange={(e) => {
             setMessage(e.target.value);
 
-            if (!conversationId || !currentUser)
-              return;
+            if (!conversationId || !currentUser) return;
 
-            startTyping({
-              conversationId,
-              userId: currentUser._id,
-            });
-
-            if (typingTimeoutRef.current) {
-              clearTimeout(
-                typingTimeoutRef.current
-              );
+            if (!typingTimeout.current) {
+              startTyping({
+                conversationId,
+                userId: currentUser._id,
+              });
             }
 
-            typingTimeoutRef.current =
-              setTimeout(() => {
-                stopTyping({
-                  conversationId,
-                  userId:
-                    currentUser._id,
-                });
-              }, 2000);
-          }}
+            if (typingTimeout.current) {
+              clearTimeout(typingTimeout.current);
+            }
+
+            typingTimeout.current = setTimeout(() => {
+              typingTimeout.current = null;
+            }, 5000);
+}}
         />
 
         <button

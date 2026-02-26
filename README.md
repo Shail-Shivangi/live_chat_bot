@@ -114,7 +114,4 @@ Java | React | SQL | Blockchain Enthusiast
  Deployed on Vercel
  https://live-message-app.vercel.app
 
-## 📜 License
-
-This project is licensed under the MIT License.
-=======
+===
